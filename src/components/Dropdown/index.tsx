@@ -62,7 +62,9 @@ const DropdownComponent = React.forwardRef<any, DropdownProps>((props, currentRe
     showsVerticalScrollIndicator = true,
     dropdownPosition = 'auto',
     flatListProps,
-    searchQuery
+    searchQuery,
+    onChangeInput = null,
+    fillQueryText = false
   } = props;
 
   const ref = useRef<View>(null);
@@ -73,6 +75,7 @@ const DropdownComponent = React.forwardRef<any, DropdownProps>((props, currentRe
   const [position, setPosition] = useState<any>();
   const [focus, setFocus] = useState<boolean>(false);
   const [keyboardHeight, setKeyboardHeight] = useState<number>(0);
+  const [queryText, setQueryText] = useState<any>()
 
   const { width: W, height: H } = Dimensions.get('window');
   const styleContainerVertical: ViewStyle = { backgroundColor: 'rgba(0,0,0,0.1)', alignItems: 'center' };
@@ -176,13 +179,22 @@ const DropdownComponent = React.forwardRef<any, DropdownProps>((props, currentRe
     scrollIndex();
   };
 
+  const onQueryText = (text) => {
+    if (fillQueryText) {
+      setQueryText(text)
+    }
+  }
+
   const onSearch = (text: string) => {
     if (text.length > 0) {
       const defaultFilterFunction = (e: any) => {
         const item = _.get(e, labelField)?.toLowerCase().replace(' ', '').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
         const key = text.toLowerCase().replace(' ', '').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-        if (item != null) {
+
+        if (item) {
           return item.indexOf(key) >= 0
+        } else {
+          return false;
         }
       }
 
@@ -214,6 +226,7 @@ const DropdownComponent = React.forwardRef<any, DropdownProps>((props, currentRe
 
   const onSelect = (item: any) => {
     onSearch('');
+    onQueryText(null)
     setCurrentValue((e: any) => e = item);
     onChange(item);
     eventClose();
@@ -226,7 +239,7 @@ const DropdownComponent = React.forwardRef<any, DropdownProps>((props, currentRe
         <View style={styles.dropdown}>
           {renderLeftIcon?.()}
           <Text style={[styles.textItem, isSelected !== null ? selectedTextStyle : placeholderStyle, font()]} {...selectedTextProps}>
-            {isSelected !== null ? _.get(currentValue, labelField) : placeholder}
+            {isSelected !== null ? _.get(currentValue, labelField) : (queryText ?? placeholder)}
           </Text>
           {renderRightIcon ? renderRightIcon() : <Image source={ic_down} style={[styles.icon, { tintColor: iconColor }, iconStyle]} />}
         </View>
@@ -248,7 +261,11 @@ const DropdownComponent = React.forwardRef<any, DropdownProps>((props, currentRe
   const renderSearch = () => {
     if (search) {
       if (renderInputSearch) {
-        return renderInputSearch((text) => { onSearch(text) });
+        return renderInputSearch((text) => {
+          console.warn(text)
+          onQueryText(text)
+          onSearch(text)
+        });
       } else {
         return <CInput
           style={[styles.input, inputSearchStyle]}
@@ -256,7 +273,13 @@ const DropdownComponent = React.forwardRef<any, DropdownProps>((props, currentRe
           autoCorrect={false}
           keyboardType={isIOS ? 'default' : 'visible-password'}
           placeholder={searchPlaceholder}
-          onChangeText={onSearch}
+          onChangeText={(text) => {
+            onChangeInput?.(text)
+            setCurrentValue(null)
+            onQueryText(text)
+            onSearch(text)
+          }
+          }
           autoSearchFoundOnly={autoSearchFoundOnly}
           placeholderTextColor="gray"
           iconStyle={[{ tintColor: iconColor }, iconStyle]}

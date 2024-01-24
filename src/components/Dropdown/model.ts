@@ -40,6 +40,8 @@ export interface IProps {
   onFocus?: () => void;
   onBlur?: () => void;
   searchQuery?: (keyword: string, labelValue: string) => boolean;
+  onChangeInput?:(input: string) => void;
+  fillQueryText?: boolean;
 };
 
 export type DropdownProps = IProps;
